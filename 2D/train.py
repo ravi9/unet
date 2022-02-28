@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # -*- coding: utf-8 -*-
 #
@@ -30,6 +31,7 @@ import os
 import tensorflow as tf  # conda install -c anaconda tensorflow
 import settings   # Use the custom settings.py file for default parameters
 
+from model import unet
 from data import load_data
 
 import numpy as np
@@ -41,20 +43,14 @@ For best CPU speed set the number of intra and inter threads
 to take advantage of multi-core systems.
 See https://github.com/intel/mkl-dnn
 """
-#CONFIG = tf.ConfigProto(intra_op_parallelism_threads=args.num_threads,
-#                        inter_op_parallelism_threads=args.num_inter_threads)
+CONFIG = tf.ConfigProto(intra_op_parallelism_threads=args.num_threads,
+                        inter_op_parallelism_threads=args.num_inter_threads)
 
-#SESS = tf.Session(config=CONFIG)
-SESS = tf.Session()
+SESS = tf.Session(config=CONFIG)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Get rid of the AVX, SSE warnings
 os.environ["OMP_NUM_THREADS"] = str(args.num_threads)
 os.environ["KMP_BLOCKTIME"] = "1"
-
-# If hyperthreading is enabled, then use
 os.environ["KMP_AFFINITY"] = "granularity=thread,compact,1,0"
-
-# If hyperthreading is NOT enabled, then use
-#os.environ["KMP_AFFINITY"] = "granularity=thread,compact"
 
 if args.keras_api:
     import keras as K
@@ -66,10 +62,8 @@ print("Intel MKL-DNN is enabled = {}".format(tf.pywrap_tensorflow.IsMklEnabled()
 
 print("Keras API version: {}".format(K.__version__))
 
-if args.channels_first:
-    K.backend.set_image_data_format("channels_first")
-
 K.backend.set_session(SESS)
+
 
 def train_and_predict(data_path, data_filename, batch_size, n_epoch):
     """
@@ -84,12 +78,11 @@ def train_and_predict(data_path, data_filename, batch_size, n_epoch):
     print("Loading the data from HDF5 file ...")
     print("-" * 30)
 
-    imgs_train, msks_train, imgs_validation, msks_validation, \
-        imgs_testing, msks_testing = \
+    imgs_train, msks_train, imgs_validation, msks_validation, imgs_testing, msks_testing = \
         load_data(hdf5_filename, args.batch_size,
-                  [args.crop_dim, args.crop_dim],
-                  args.channels_first, args.seed)
+                  [args.crop_dim, args.crop_dim])
 
+    np.random.seed(816)
 
     print("-" * 30)
     print("Creating and compiling model ...")
@@ -98,10 +91,6 @@ def train_and_predict(data_path, data_filename, batch_size, n_epoch):
     """
     Step 2: Define the model
     """
-    if args.use_pconv:
-        from model_pconv import unet
-    else:
-        from model import unet
 
     unet_model = unet()
     model = unet_model.create_model(imgs_train.shape, msks_train.shape)
@@ -137,14 +126,6 @@ def train_and_predict(data_path, data_filename, batch_size, n_epoch):
 
     unet_model.evaluate_model(model_filename, imgs_testing, msks_testing)
 
-    """
-    Step 5: Save frozen TensorFlow version of model
-    This can be convert into OpenVINO format with model optimizer.
-    """
-    print("-" * 30)
-    print("Freezing model and saved to a TensorFlow protobuf ...")
-    print("-" * 30)
-    unet_model.save_frozen_model(model_filename, imgs_testing.shape)
 
 if __name__ == "__main__":
 

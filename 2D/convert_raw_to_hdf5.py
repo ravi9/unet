@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # -*- coding: utf-8 -*-
 #
@@ -69,7 +70,7 @@ parser.add_argument("--save_path",
 parser.add_argument("--output_filename",
 					default="decathlon_brats.h5",
 					help="Name of the output HDF5 file")
-parser.add_argument("--resize", type=int, default=240,
+parser.add_argument("--resize", type=int, default=144,
 					help="Resize height and width to this size. "
 					"Original size = 240")
 parser.add_argument("--split", type=float, default=0.85,
@@ -435,7 +436,8 @@ if __name__ == "__main__":
 		  "training and validation HDF5 data file.")
 	print(args)
 
-	save_dir = args.save_path
+	save_dir = os.path.join(
+		args.save_path, "{}x{}/".format(args.resize, args.resize))
 
 	# Create directory
 	try:

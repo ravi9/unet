@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # -*- coding: utf-8 -*-
 #
@@ -17,15 +18,16 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-import psutil
+
+import psutil  # pip install psutil
 import os
 
-DATA_PATH = os.path.join("../../data/decathlon/")
+DATA_PATH = os.path.join("../../data/decathlon/144x144/")
 DATA_FILENAME = "Task01_BrainTumour.h5"
 OUT_PATH = os.path.join("./output/")
 INFERENCE_FILENAME = "unet_model_for_decathlon.hdf5"
 
-EPOCHS = 40  # Number of epochs to train
+EPOCHS = 30  # Number of epochs to train
 
 """
 If the batch size is too small, then training is unstable.
@@ -50,22 +52,19 @@ PRINT_MODEL = True  # Print the model
 # CPU specific parameters for multi-threading.
 # These can help take advantage of multi-core CPU systems
 # and significantly boosts training speed with MKL-DNN TensorFlow.
-BLOCKTIME = 1000
+BLOCKTIME = 1
 NUM_INTER_THREADS = 1
 # Default is to use the number of physical cores available
 
 # Figure out how many physical cores we have available
-# Minimum of either the CPU affinity or the number of physical cores
-import multiprocessing
-NUM_INTRA_THREADS = min(len(psutil.Process().cpu_affinity()), psutil.cpu_count(logical=False))
-
+# Set floor to at least 2 threads
+NUM_INTRA_THREADS = max(len(psutil.Process().cpu_affinity()), 2)
 
 CHANNELS_FIRST = False
 USE_KERAS_API = True   # If true, then use Keras API. Otherwise, use tf.keras
 # 28 DEC 2018: tf.keras has some bugs in the use of HDF5 and with the custom
 # loss function. Recommend to use Keras API when in doubt.
 # If true, then use bilinear interpolation. Otherwise, transposed convolution
-USE_UPSAMPLING = False
+USE_UPSAMPLING = True
 USE_AUGMENTATION = True  # Use data augmentation during training
-USE_DROPOUT = False  # Use spatial dropout in model
-USE_PCONV = False   # If True, Partial Convolution based padding will be used. See https://arxiv.org/pdf/1811.11718.pdf
+USE_DROPOUT = True  # Use spatial dropout in model

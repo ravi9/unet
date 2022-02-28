@@ -78,7 +78,7 @@ fi
 
 echo " "
 echo "******************************************"
-echo "Step 1 of 4: Convert raw data to HDF5 file"
+echo "Step 1 of 3: Convert raw data to HDF5 file"
 echo "******************************************"
 
 echo "Converting Decathlon raw data to HDF5 file."
@@ -87,53 +87,38 @@ echo "Converting Decathlon raw data to HDF5 file."
 # max pooling and upsampling works in U-Net. The rule is
 # 2^n where n is the number of max pooling/upsampling concatenations.
 python convert_raw_to_hdf5.py --data_path $DECATHLON_DIR/${SUBSET_DIR} \
-       --output_filename $MODEL_OUTPUT_FILENAME \
-       --save_path $DECATHLON_DIR
+        --output_filename $MODEL_OUTPUT_FILENAME \
+        --save_path $DECATHLON_DIR --resize=$IMG_SIZE
 
 echo " "
 echo "***********************************"
-echo "Step 2 of 4: Train U-Net on dataset"
+echo "Step 2 of 3: Train U-Net on dataset"
 echo "***********************************"
 
 echo "Run U-Net training on BraTS Decathlon dataset"
 # Run training script
 # The settings.py file contains the model training.
 python train.py \
-       --epochs $NUM_EPOCHS  \
-       --learningrate $LEARNING_RATE \
-       --data_path $DECATHLON_DIR \
-       --crop_dim $IMG_SIZE \
-       --data_filename $MODEL_OUTPUT_FILENAME \
-       --output_path $MODEL_OUTPUT_DIR \
-       --inference_filename $INFERENCE_FILENAME \
-       --featuremaps $FEATURE_MAPS \
-       --print_model \
-       --keras_api \
-       --use_augmentation
-
-echo " "
-echo "****************************************"
-echo "Step 3 of 4: Run sample inference script"
-echo "****************************************"
-
-python plot_inference_examples.py  \
-        --data_path $DECATHLON_DIR \
+        --epochs $NUM_EPOCHS  \
+        --learningrate $LEARNING_RATE \
+        --data_path $DECATHLON_DIR/${IMG_SIZE}x${IMG_SIZE} \
         --data_filename $MODEL_OUTPUT_FILENAME \
         --output_path $MODEL_OUTPUT_DIR \
         --inference_filename $INFERENCE_FILENAME \
-        --crop_dim $IMG_SIZE
+        --featuremaps $FEATURE_MAPS \
+        --print_model \
+        --keras_api \
+        --use_upsampling \
+        --use_augmentation \
+        --use_dropout
 
 echo " "
-echo "********************************************************"
-echo "Step 4 of 4: Converting the TensorFlow model to OpenVINO"
-echo "********************************************************"
-echo "If you have OpenVINO installed, then you can run the following command"
-echo "to create the OpenVINO model."
-echo ""
-echo "source /opt/intel/openvino/bin/setupvars.sh"
-echo "python ${INTEL_OPENVINO_DIR}/deployment_tools/model_optimizer/mo_tf.py \\"
-echo "   --input_model ./frozen_model/unet_model_for_decathlon.pb \\"
-echo "   --input_shape [1,${IMG_SIZE},${IMG_SIZE},4] \\"
-echo "   --output_dir openvino_models/FP32/ \\"
-echo "   --data_type FP32  --model_name saved_model"
-echo " "
+echo "****************************************"
+echo "Step 3 of 3: Run sample inference script"
+echo "****************************************"
+
+python plot_inference_examples.py  \
+        --data_path $DECATHLON_DIR/${IMG_SIZE}x${IMG_SIZE} \
+        --data_filename $MODEL_OUTPUT_FILENAME \
+        --output_path $MODEL_OUTPUT_DIR \
+        --inference_filename $INFERENCE_FILENAME
